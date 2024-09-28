@@ -8,18 +8,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * An implementation of the Translator interface which reads in the translation
  * data from a JSON file. The data is read in once each time an instance of this class is constructed.
  */
 public class JSONTranslator implements Translator {
-
-    // TODO Task: pick appropriate instance variables for this class
+    private List<String> countryCodeList = new ArrayList<>();
+    private List<String> langCodeList = new ArrayList<>();
+    private List<String[]> countryTranslationList = new ArrayList<>();
 
     /**
      * Constructs a JSONTranslator using data from the sample.json resources file.
      */
+
     public JSONTranslator() {
         this("sample.json");
     }
@@ -36,10 +39,25 @@ public class JSONTranslator implements Translator {
             String jsonString = Files.readString(Paths.get(getClass().getClassLoader().getResource(filename).toURI()));
 
             JSONArray jsonArray = new JSONArray(jsonString);
-
-            // TODO Task: use the data in the jsonArray to populate your instance variables
-            //            Note: this will likely be one of the most substantial pieces of code you write in this lab.
-
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject countryData = jsonArray.getJSONObject(i);
+                String countrycodes = countryData.getString("alpha3");
+                countryCodeList.add(countrycodes);
+                if (langCodeList.isEmpty()) {
+                    for (String languageKey : countryData.keySet()) {
+                        if (!"alpha2".equals(languageKey) && !"alpha3".equals(languageKey)
+                                && !"id".equals(languageKey)) {
+                            langCodeList.add(languageKey);
+                        }
+                    }
+                }
+                String[] countryTranslations = new String[langCodeList.size()];
+                for (int j = 0; j < langCodeList.size(); j++) {
+                    String languageCode = langCodeList.get(j);
+                    countryTranslations[j] = countryData.optString(languageCode, null);
+                }
+                countryTranslationList.add(countryTranslations);
+            }
         }
         catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
@@ -48,21 +66,27 @@ public class JSONTranslator implements Translator {
 
     @Override
     public List<String> getCountryLanguages(String country) {
-        // TODO Task: return an appropriate list of language codes,
-        //            but make sure there is no aliasing to a mutable object
-        return new ArrayList<>();
+        int countryi = countryCodeList.indexOf(country);
+        if (countryi == -1) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(langCodeList);
     }
 
     @Override
     public List<String> getCountries() {
-        // TODO Task: return an appropriate list of country codes,
-        //            but make sure there is no aliasing to a mutable object
-        return new ArrayList<>();
+        return new ArrayList<>(countryCodeList);
     }
 
     @Override
     public String translate(String country, String language) {
-        // TODO Task: complete this method using your instance variables as needed
-        return null;
+        String translation = null;
+        int countryi = countryCodeList.indexOf(country);
+        int languagej = langCodeList.indexOf(language);
+        if (countryi != -1 && languagej != -1) {
+            translation = countryTranslationList.get(countryi)[languagej];
+        }
+        return translation;
     }
 }
+
